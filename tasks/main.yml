@@ -1,0 +1,45 @@
+# Install
+- name: include install tasks
+  include_tasks: install.yml
+
+# SSH for rsync
+- name: include ssh tasks
+  include_tasks: ssh.yml
+
+
+# Setup primary
+- name: "primary | check if registered"
+  when: repmgr_primary
+  shell: "repmgr -f /etc/repmgr.conf node status | grep primary"
+  become: True
+  become_user: postgres
+  register: repmgr_check_primary_status
+  ignore_errors: True
+
+- name: "primary | check if registered output"
+  when: repmgr_primary
+  debug:
+    msg: "{{ repmgr_check_primary_status.stdout }}"
+
+- name: include setup primary tasks
+  include_tasks: primary-setup.yml
+  when: repmgr_primary and repmgr_check_primary_status.rc != 0
+
+
+# Setup standby
+- name: "standby | check if registered"
+  when: repmgr_standby
+  shell: "repmgr -f /etc/repmgr.conf node status | grep standby"
+  become: True
+  become_user: postgres
+  register: repmgr_check_standby_status
+  ignore_errors: True
+
+- name: "standby | check if registered output"
+  when: repmgr_standby
+  debug:
+    msg: "{{ repmgr_check_standby_status.stdout }}"
+
+- name: include setup standby tasks
+  include_tasks: standby-setup.yml
+  when: repmgr_resync_standby and repmgr_standby and repmgr_check_standby_status.rc != 0

@@ -1,0 +1,47 @@
+# Standby: register and sync with primary
+- name: "standby | stop postgresql and repmgrd"
+#  when: repmgr_standby and repmgr_check_standby_status.rc != 0
+  systemd:
+    name: "{{ repmgr_standby_service_stopped }}"
+    state: stopped
+  with_items:
+    - repmgrd
+    - postgresql
+  loop_control:
+    loop_var: repmgr_standby_service_stopped
+
+- name: "standby | remove /var/lib/postgresql/postgresql_version/main"
+#  when: repmgr_standby and repmgr_check_standby_status.rc != 0
+  file:
+    path: "/var/lib/postgresql/{{ repmgr_postgresql_version }}/main"
+    state: absent
+
+- name: "standby | copy primarys data dir to standby node"
+#  when: repmgr_standby and repmgr_check_standby_status.rc != 0
+  shell: |
+    repmgr -f /etc/repmgr.conf \
+      --force \
+      --host {{ repmgr_primary_ip }} \
+      --dbname repmgr \
+      --user repmgr \
+      --verbose \
+      standby clone
+  become: True
+  become_user: postgres
+
+- name: "standby | start postgresql service node"
+#  when: repmgr_standby
+  systemd:
+    name: "{{ repmgr_standby_service_started }}"
+    state: started
+  with_items:
+    - repmgrd
+    - postgresql
+  loop_control:
+    loop_var: repmgr_standby_service_started
+
+- name: "standby | register standby node"
+#  when: repmgr_standby and repmgr_check_standby_status.rc == 1
+  shell: repmgr -f /etc/repmgr.conf standby register --upstream-node-id 1
+  become: True
+  become_user: postgres

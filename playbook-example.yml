@@ -1,0 +1,33 @@
+- hosts: cus_www_prod_db
+  roles:
+    - blunix_role-postgresql-repmgr_11.0.0
+  vars:
+
+    repmgr_primary_hostname: cus-www-prod-db-1
+    repmgr_standby_hostname: cus-www-prod-db-2
+
+    repmgr_db_password: "{{ cus_www_prod_db_postgresql_db_repmgr_password }}"
+    repmgr_postgresql_version: 13
+
+    repmgr_node_address: "{{ nic_wg_mesh_ip }}"
+    repmgr_primary_ip: "{{ hostvars['cus-www-prod-db-1']['nic_wg_mesh_ip'] }}"
+    repmgr_standby_ip: "{{ hostvars['cus-www-prod-db-2']['nic_wg_mesh_ip'] }}"
+
+    # Resync the standby if repmgr cluster status != 0 on standby
+    repmgr_resync_standby: False
+
+
+  pre_tasks:
+
+    - name: set primary facts
+      set_fact:
+        repmgr_node_id: 1
+        repmgr_primary: True
+      when: inventory_hostname == repmgr_primary_hostname
+
+    - name: set standby facts
+      set_fact:
+        repmgr_node_id: 2
+        repmgr_standby: True
+      when: inventory_hostname == repmgr_standby_hostname
+

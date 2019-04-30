@@ -1,0 +1,8 @@
+repmgr_postgresql_version: 13
+repmgr_loglevel: NOTICE
+repmgr_node_name: "{{ inventory_hostname }}"
+repmgr_cluster: default
+repmgr_primary: False
+repmgr_standby: False
+
+repmgr_resync_standby: False

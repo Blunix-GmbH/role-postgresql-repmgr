@@ -1,0 +1,8 @@
+# {{ ansible_managed }}
+
+node_id={{ repmgr_node_id }}
+node_name='{{ repmgr_node_name }}'
+conninfo='host={{ repmgr_node_address }} port=5432 dbname=repmgr user=repmgr'
+data_directory='/var/lib/postgresql/{{ repmgr_postgresql_version }}/main'
+log_level={{ repmgr_loglevel }}
+

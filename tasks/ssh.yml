@@ -1,0 +1,37 @@
+- name: "all | add postgres user to ssh group"
+  user:
+    name: postgres
+    groups: ['ssh']
+    append: True
+
+- name: "primary | generate a ssh keypair"
+  when: repmgr_primary
+  shell: "ssh-keygen -q -t ed25519 -N '' -o -a 100 -f /var/lib/postgresql/.ssh/id_ed25519"
+  args:
+    creates: /var/lib/postgresql/.ssh/id_ed25519
+  become: True
+  become_user: postgres
+
+- name: "primary | read ssh public key into a variable"
+  when: repmgr_standby
+  shell: cat /var/lib/postgresql/.ssh/id_ed25519.pub
+  register: repmgr_primary_ssh_public_key
+  delegate_to: "{{ repmgr_primary_hostname }}"
+
+- name: "standby | setup primarys public key"
+  when: repmgr_standby
+  authorized_key:
+    user: postgres
+    key: "{{ repmgr_primary_ssh_public_key.stdout }}"
+    state: present
+    manage_dir: True
+
+- name: "primary | accept standbys ssh host key"
+  when: repmgr_primary
+  shell: |
+    set -o pipefail
+    ssh -o StrictHostKeyChecking=accept-new postgres@{{ repmgr_standby_ip }} whoami 2>&1
+  args:
+    executable: /bin/bash
+  become: True
+  become_user: postgres

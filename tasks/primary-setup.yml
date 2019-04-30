@@ -1,0 +1,37 @@
+#  vars:
+#    ansible_ssh_pipelining: True
+
+
+# register
+- name: "primary | check if primary is already registered"
+  when: repmgr_primary
+  shell: "repmgr -f /etc/repmgr.conf node status | grep primary"
+  become: True
+  become_user: postgres
+  register: repmgr_check_primary_status
+
+- name: "primary | register primary"
+  when: repmgr_primary and repmgr_check_primary_status.rc != 0
+  shell: "repmgr -f /etc/repmgr.conf primary register"
+  become: True
+  become_user: postgres
+
+- name: "primary | start repmgrd"
+  systemd:
+    name: repmgrd
+    enabled: True
+    state: started
+
+
+# show cluster status
+- name: "primary | show cluster status"
+  when: repmgr_primary
+  shell: "repmgr -f /etc/repmgr.conf cluster show 2>&1"
+  become: True
+  become_user: postgres
+  register: repmgr_show_primary_status
+
+- name: "primary | show cluster status output"
+  when: repmgr_primary
+  debug:
+    msg: "{{ repmgr_show_primary_status.stdout }}"
